@@ -1,0 +1,16 @@
+*.py[cod]
+*.so
+*.egg
+*.egg-info
+dist
+build
+bin
+var
+sdist
+lib
+lib64
+.coverage
+.tox
+docs/_build
+.idea
+__pycache__

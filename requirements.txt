@@ -1,0 +1,10 @@
+github3.py==1.0.0a1
+jinja2
+celery==3.1.18
+redis
+jsonpickle
+jenkinsapi
+cached_property
+commandsession==0.2
+pip
+tox

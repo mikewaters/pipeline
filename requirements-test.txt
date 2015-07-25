@@ -1,0 +1,10 @@
+coverage
+coveralls
+nose>=1.3.0 # for some crap we import from celery.tests
+flake8>=2.1.0
+
+pytest
+pytest-cov
+pytest-mock
+
+ipdb
