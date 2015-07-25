@@ -128,7 +128,7 @@ class workspace(contextlib.ContextDecorator, Workspace):
         prefix = [x for x in [self.__class__.__name__.lower(), name] if x]
         pathstr = '-'.join([str(x) for x in prefix + path_parts])
 
-        self.location = self.cwd = os.path.join(
+        self.location = self._cwd = os.path.join(
             basepath or tempfile.gettempdir(), pathstr
         )
 
@@ -138,8 +138,18 @@ class workspace(contextlib.ContextDecorator, Workspace):
         self.session = session or CommandSession(
             stream=True,
             env=self.environ,
-            cwd=self.cwd
+            cwd=self._cwd,
+            force_shell=True
         )
+
+    @property
+    def cwd(self):
+        return self._cwd
+
+    @cwd.setter
+    def cwd(self, directory):
+        self._cwd = directory
+        self.session._cwd = self._cwd
 
     @property
     def environ(self):
@@ -155,20 +165,31 @@ class workspace(contextlib.ContextDecorator, Workspace):
 
     def acquire_source(self, source):
         """Run a source's acquisition instructions in the workspace.
+        This may involve changing the workspace's working directory
+        to the location of the acquired source.
         """
         if not hasattr(source, 'acquisition_instructions'):
             logger.debug('source {} does not need to be acquired'.format(source))
-            return 0
+            return 
 
-        for item in source.acquisition_instructions:
-            self.session.check_call(item)
+        instructions = source.acquisition_instructions
 
+        self.session.check_call(instructions['command'])
+
+        if 'directory' in instructions:
+            self.cwd = os.path.join(
+                self.location, instructions['directory']
+            )
+            logger.debug('cwd changed to {}'.format(self.cwd))
+
+        for command in instructions['post_commands']:
+            self.session.check_call(command)
 
     def __enter__(self):
         """Populate the workspace.
         """
         assert not os.path.exists(self.location)
-        logging.debug('creating workspace {}'.format(self.location))
+        logger.debug('creating workspace {}'.format(self.location))
         try:
             os.mkdir(self.location)
         except OSError as exc:
@@ -181,7 +202,7 @@ class workspace(contextlib.ContextDecorator, Workspace):
 
     def __exit__(self, *exc):
         # this is fricking dangerous.  figure something out.
-        logging.debug('deleting workspace {}'.format(self.location))
+        logger.debug('deleting workspace {}'.format(self.location))
         if self.delete:
             shutil.rmtree(self.location)
 
@@ -193,7 +214,7 @@ class python_workspace(workspace):
     Wraps execution in a virtualenv, by prepending env directory to PATH.
     """
     __id = 'python_workspace'
-    venv = ['virtualenv', '-p', 'python2']
+    venv = 'virtualenv -p python2'
 
     @property
     def environ(self):
@@ -208,7 +229,7 @@ class python_workspace(workspace):
     def __enter__(self):
         super(python_workspace, self).__enter__()
         
-        ret = self.session.check_call(self.venv + ['env'])
+        ret = self.session.check_call("{} env".format(self.venv))
         if not ret == 0:
             raise WorkspaceError('Could not create virtualenv')
 
@@ -219,7 +240,6 @@ class python_workspace(workspace):
         self.environ['VIRTUAL_ENV'] = os.path.join(self.location, 'env')
 
         return self
-
 
 class python3_workspace(python_workspace):
     """Python3-specific workspace.
@@ -236,210 +256,5 @@ def get_workspace(workspace_type, *args, **kwargs):
     elif workspace_type == 'python3':
         return python3_workspace(*args, **kwargs)
     return workspace(*args, **kwargs)
-
-
-class v1_workspace(contextlib.ContextDecorator, Workspace):
-    """DEPRECATED
-
-    Workspace.
-
-    A container for interacting with the system on a worker.
-
-    Creates/deletes on-disk working directory and handles
-    execution of shell commands within the correct environment.
-
-    TODO:
-        - implement workspace reusability. will allow us to leverage
-        data locality, to execute commands in a pre-existing workspace
-        eliminating startup costs
-        - allow caller to specify username?
-        - doesnt run bash with startup file etc..
-        - file descriptors for stdout and stderr so that entire command
-        output can be propagated to other tasks
-        - experiment with various methods of subprocess.  currently using call(),
-        which is simple, but it might not be enough.  for instance, capturing
-        error and returning to caller, instead of diaplying to stderr of process
-
-    """
-    __id = 'v1_workspace'
-
-    def __init__(self, name=None, basepath=None, hints=None, delete=True, reusable=False):
-        """`reusable` param is only used for testig right now.
-
-        :param name:
-            combined with ``hints`` and the name of this class,
-            determines the on-disk directory name for this workspace.
-        :param basepath: location of temp area for creating workspace
-        :param hints: list, see ``name``
-        :param delete: boolean, determines whether to delete this workspace
-            after use
-        :param reusable: boolean, if False the on-disk directory has a
-            random value prepended to it.
-
-        """
-        self.user = get_current_user()
-        self.environ = get_user_environment(self.user)
-
-        if not basepath:
-            basepath = settings.PIPELINE_WORKSPACE_ROOT
-
-        # haaaaaaaaaaaaaack for OSX w/ brew
-        if platform.uname()[0] == 'Darwin':
-            self.environ['PATH'] = "{}:{}".format(
-                '/usr/local/bin',
-                self.environ['PATH']
-            )
-
-        logger.debug('initializing workspace for user {} in {}'.format(
-            self.user, basepath
-        ))
-
-        self.delete = delete
-
-        path_parts = hints or []
-        assert isinstance(path_parts, list)
-
-        if not reusable:
-            path_parts.append(rand_suffix())
-
-        prefix = [x for x in [self.__class__.__name__.lower(), name] if x]
-        pathstr = '-'.join([str(x) for x in prefix + path_parts])
-
-        self.location = self.cwd = os.path.join(
-            basepath or tempfile.gettempdir(), pathstr
-        )
-
-    def acquire_source(self, source):
-        """Run a source's acquisition instructions in the workspace.
-        If the source specifies that the installation resulted in
-        a change of directory, alter self.cwd to match.
-
-        #TODO use some abstraction for the instructions, instead of a dict
-        """
-        if not hasattr(source, 'acquisition_instructions'):
-            logger.debug('source {} does not need to be acquired'.format(source))
-            return 0
-
-        instructions = source.acquisition_instructions
-
-        # run install command
-        # FIXME SOON
-        if isinstance(instructions['command'], six.string_types):
-            # hack for debugging
-            import subprocess
-            ret = subprocess.call(
-                instructions['command'],
-                shell=True
-            )
-        else:
-            ret = self.run_command(
-                instructions['command'],
-            )
-
-        if not ret == 0:
-            logger.error("couldnt run command {} for source {}".format(
-                instructions['command'], source
-            ))
-            return ret
-
-        # update workspace location with source subdir.
-        # this may not work, good enough for now.
-        if instructions['directory']:
-            self.cwd = os.path.join(
-                self.location, instructions['directory']
-            )
-            logger.debug('cwd changed to {}'.format(self.cwd))
-
-        # run post-install commands, if any
-        for command in instructions['post_commands']:
-            ret = self.run_command(command)
-            if not ret == 0:
-                logger.error("couldnt run command for source {}".format(
-                    command, source
-                ))
-                return ret
-
-        return 0
-
-    def __enter__(self):
-        """Populate the workspace.
-        """
-        assert not os.path.exists(self.location)
-        logging.debug('creating workspace {}'.format(self.location))
-        try:
-            os.mkdir(self.location)
-        except OSError as exc:
-            logger.error("Could not create workspace: %s" % str(exc))
-            raise WorkspaceError(
-                "Could not create workspace at %s" % self.location
-            ) from exc
-
-        return self
-
-    def __exit__(self, *exc):
-        # this is fricking dangerous.  figure something out.
-        logging.debug('deleting workspace {}'.format(self.location))
-        if self.delete:
-            shutil.rmtree(self.location)
-
-        return False
-
-    def wrap_command(self, command, env=None):
-        """Get a partial for running an arbitrary command.
-        TODO: remove this. his was useful when we passed
-        the callables into the celery task to micromanage them.
-        """
-        #assert isinstance(command, list), "not supporting subprocess shell=True"
-
-        environ = deepcopy(self.environ)
-        if env:
-            environ.update(env)
-        if isinstance(command, six.string_types):
-            return functools.partial(
-                subprocess.call,
-                command, cwd=self.cwd, env=environ, shell=True
-            )
-        else:
-            return functools.partial(
-                subprocess.call,
-                command, cwd=self.cwd, env=environ
-            )
-
-    def run_command(self, command, env=None):
-        """Run a wrapped command."""
-        logger.debug('running command {}'.format(command))
-        command = self.wrap_command(command, env)
-        #FIXME
-        try:
-            result = command()
-        except Exception as e:
-            logger.error(str(e))
-            logger.error(self.environ)
-            raise
-        else:
-            return result
-
-    def get_output(self, command, env=None):
-        """Temporary."""
-        def fmt_output(what):
-            return what.decode('utf-8')
-
-        #assert isinstance(command, list), "not supporting subprocess shell=True"
-        environ = deepcopy(self.environ)
-        if env:
-            environ.update(env)
-        try:
-            if isinstance(command, six.string_types):
-                ret = subprocess.check_output(
-                    command, cwd=self.cwd, env=environ, shell=True
-                )
-            else:
-                ret = subprocess.check_output(
-                    command, cwd=self.cwd, env=environ
-                )
-        except subprocess.CalledProcessError as exc:
-            return fmt_output(exc.output), exc.returncode
-
-        return fmt_output(ret), 0
 
 

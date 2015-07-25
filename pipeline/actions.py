@@ -61,11 +61,11 @@ class TaskAction(metaclass=ActionRegistry):
 
     """
 
-    def __init__(self, task_name, name=None, children=None, workspace=None, workspace_kwargs=None, **task_kwargs):
+    def __init__(self, task_name, name=None, callbacks=None, workspace=None, workspace_kwargs=None, **task_kwargs):
         self.task = self.__class__.get(task_name)
         self.partial = None
         self.name = name or "{}.{}".format(self.task.__module__, task_name)
-        self.children = children or []
+        self.callbacks = callbacks or []
         self.workspace = workspace
         self.workspace_kwargs = workspace_kwargs or {}
         self.task_kwargs = task_kwargs or {}
@@ -97,7 +97,7 @@ class TaskAction(metaclass=ActionRegistry):
         kwargs.update(self.task_kwargs)
         kwargs.update({
             '_pipeline_chain_state': {
-                'children': self.children,
+                'callbacks': self.callbacks,
                 'action_name': self.name,
             }
          })
@@ -137,13 +137,13 @@ class TaskAction(metaclass=ActionRegistry):
 
 
         """
-        children = []  # list of tuples
-        if 'children' in dct:
-            for item in dct['children']:
+        callbacks = []  # list of tuples
+        if 'callbacks' in dct:
+            for item in dct['callbacks']:
                 # because predicate is not a normal task attribute, pop it before serializing
                 # default of 'True' will cuase it to always execute.
                 predicate = item.pop('predicate', 'True')
-                children.append((
+                callbacks.append((
                     cls.from_dict(item),
                     predicate
                 ))
@@ -154,7 +154,7 @@ class TaskAction(metaclass=ActionRegistry):
         task_action = cls(
             dct['action'],
             name=dct.get('name'),
-            children=children,
+            callbacks=callbacks,
             workspace=workspace_cls,
             workspace_kwargs=workspace_kwargs,
             **dct.get('kwargs', {})

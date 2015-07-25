@@ -8,6 +8,6 @@ modules using registries are imported as early as possible
 
 import pipeline.signals
 import pipeline.workspace
-
+import pipeline.command
 
 
