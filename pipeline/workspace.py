@@ -132,9 +132,6 @@ class workspace(contextlib.ContextDecorator, Workspace):
             basepath or tempfile.gettempdir(), pathstr
         )
 
-        for k ,v in self.environ.items():
-            logger.error("{}:{}".format(k, v))
-            
         self.session = session or CommandSession(
             stream=True,
             env=self.environ,
