@@ -91,7 +91,7 @@ class workspace(contextlib.ContextDecorator, Workspace):
     """
     __id = 'workspace'
 
-    def __init__(self, name=None, basepath=None, hints=None, delete=True, reusable=False, session=None):
+    def __init__(self, name=None, basepath=None, hints=None, delete=True, reusable=False, session=None, force_shell=True):
         """`reusable` param is only used for testig right now.
 
         :param name:
@@ -136,7 +136,7 @@ class workspace(contextlib.ContextDecorator, Workspace):
             stream=True,
             env=self.environ,
             cwd=self._cwd,
-            force_shell=True
+            force_shell=force_shell
         )
 
     @property
