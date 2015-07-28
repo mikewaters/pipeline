@@ -2,21 +2,10 @@
 Pipeline
 =============================
 
-.. image:: https://badge.fury.io/py/pipeline.png
-    :target: https://badge.fury.io/py/pipeline
-
-.. image:: https://travis-ci.org/mikewaters/pipeline.png?branch=master
-    :target: https://travis-ci.org/mikewaters/pipeline
-
-.. image:: https://coveralls.io/repos/mikewaters/pipeline/badge.png?branch=master
-    :target: https://coveralls.io/r/mikewaters/pipeline?branch=master
-
 Execution pipeline built on celery.
+`pipeline` is a library to facilitate the execution of shell scripts
+and python functions, configured at runtime.
 
-Documentation
--------------
-
-The full documentation is at https://pipeline.readthedocs.org.
 
 Quickstart
 ----------
@@ -31,9 +20,9 @@ Then use it in a project::
 
 Tests
 -----
-All the tests fail due to a major refactor.  But if you like red console test, run this:
+All the tests fail due to a major refactor.
+But if you like pretty red console text, run this:
 
     mkvirtualenv -p `which python3` pipeline
     tox
-
 
