@@ -4,6 +4,7 @@ Pipeline celery signal handlers
 """
 from copy import deepcopy
 
+from celery import group
 from celery.signals import task_postrun
 
 from pipeline.actions import PipelineTask
@@ -31,29 +32,32 @@ def task_postrun_handler(*args, **kwargs):
     if not isinstance(kwargs['sender'], PipelineTask):
         return
 
-    logger.debug('postrun handler triggered {} {}'.format(args, kwargs))
-
     task_kwargs = deepcopy(kwargs['kwargs'])  # inception!
     state = task_kwargs.get('_pipeline_chain_state', {})
 
-    if 'children' in state:
-        child_tasks = state['children']
-        #TODO: check to make sure children never reaches beyond a single action
-        del state['children']  # may not be necessary
+    if 'callbacks' in state:
 
+        child_tasks = state['callbacks']
+        logger.debug('task has callbacks: {}'.format(child_tasks))
         context = task_kwargs['_pipeline_chain_state']['build_context']
 
+        callbacks = []
         for action, predicate in child_tasks:
-            #TODO: execute children in parallel
-
             try:
                 should_execute = safe_eval(
                     predicate,
-                    context
+                    context.eval_context
                 )
             except:
                 should_execute = False
 
             if should_execute:
-                action.prepare(context)
-                action.partial.delay()
+                source = kwargs['args'][0]  # wtf
+                callbacks.append(action.prepare(source, context))
+            else:
+                logger.debug('Callback {} should not execute.'.format(action))
+
+        if len(callbacks):
+            logger.debug('Executing some callbacks: {}'.format(callbacks))
+            canvas = group(*callbacks)
+            canvas.apply_async()
