@@ -5,6 +5,6 @@ redis
 jsonpickle
 jenkinsapi
 cached_property
-commandsession==0.2
+commandsession==0.3
 pip
 tox

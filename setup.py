@@ -14,7 +14,7 @@ reqs = [str(ir.req) for ir in install_reqs]
 
 setup(
     name='celery-pipeline',
-    version='0.9.1',
+    version='0.9.2',
     description="Runtime-configurable execution pipeline built on celery.",
     author='Mike Waters',
     author_email='robert.waters@gmail.com',
