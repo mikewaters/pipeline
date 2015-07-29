@@ -243,7 +243,7 @@ class python3_workspace(python_workspace):
     Wraps execution in a virtualenv, by prepending env directory to PATH.
     """
     __id = 'python3_workspace'
-    venv = ['pyvenv']  #, '-p', 'python3']
+    venv = 'pyvenv'  #, '-p', 'python3']
 
 
 def get_workspace(workspace_type, *args, **kwargs):
