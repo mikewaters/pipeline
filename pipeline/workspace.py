@@ -112,11 +112,6 @@ class workspace(contextlib.ContextDecorator, Workspace):
         if not basepath:
             basepath = settings.PIPELINE_WORKSPACE_ROOT
 
-
-        logger.debug('initializing workspace for user {} in {}'.format(
-            self.user, basepath
-        ))
-
         self.delete = delete
 
         path_parts = hints or []
@@ -243,7 +238,7 @@ class python3_workspace(python_workspace):
     Wraps execution in a virtualenv, by prepending env directory to PATH.
     """
     __id = 'python3_workspace'
-    venv = 'pyvenv'  #, '-p', 'python3']
+    venv = 'pyvenv'
 
 
 def get_workspace(workspace_type, *args, **kwargs):

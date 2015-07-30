@@ -70,20 +70,6 @@ class TaskAction(metaclass=ActionRegistry):
         self.workspace_kwargs = workspace_kwargs or {}
         self.task_kwargs = task_kwargs or {}
 
-    @property
-    def prepared(self):
-        """Executor shouldnt run tasks that havent been signatured"""
-        return bool(self.partial)
-
-    # def delay(self, *args, **kwargs):
-    #     # used for testing; in the real world, we run actions
-    #     # using an executor
-    #     if self.partial:
-    #         return self.partial.delay(*args, **kwargs)
-    #     elif self.task:
-    #         return self.task.delay(*args, **kwargs)
-    #     raise Exception('not ready')  # TODO
-
     def prepare(self, source, build_context=None):  # **task_kwargs):
         """Return a task ready for a signature.
         Always use a bound task.
@@ -293,80 +279,3 @@ class PipelineTask(Task):
         if not hasattr(self, '_pipeline_chain_state'):
             raise AttributeError('task not executed in a pipeline')
         return self._pipeline_chain_state['build_context']
-
-"""TODO: remove everything below this line.
-This is the old API
-"""
-class Result(object):
-    def __init__(self, result):
-        self.result = result
-
-
-class TaskResult(object):
-    """Base container for a task result.
-
-    Note: It is not required to use this class.
-    As long as the thing added to context can be evaluated as a boolean,
-    and it uses attribute access.
-
-    Since we wish to chain arbitrary tasks, passing the return value
-    of one task to the invocation of another, it is hepful for each
-    task to share a common return signature.
-    """
-    def __init__(self, return_value, **kwargs):
-        assert isinstance(return_value, bool)
-
-        self.return_value = return_value
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
-    def __repr__(self):
-        """This is required for celery 3.1, some internals
-        use repr during serialization."""
-        return "TaskResult({}, output='{}')".format(
-            str(self.return_value),
-            self.output
-        )
-
-    def __str__(self):
-        return str(self.return_value)
-
-    def __bool__(self):
-        """Task return values should always implement this,'
-        so a test for handler execution will work properly.
-        """
-        return self.return_value
-
-#
-# class TemplatedTaskMixin(object):
-#     """Templated Task subclass.
-#     Provides a ``render()`` method that a task can use to render
-#     a predefined template using data from the provided source
-#     (or elsewhere, I suppose).
-#     # NOTE: celery Task class does not behave properly with respect
-#     # to mro for __call__() method.  It is not possible to use
-#     # multiple inheritance with chaining of __call__() for Task subclasses.
-#     # ALL we can do is provide pure mixins, ust adding methods and not
-#     # overriding or redefining them.
-#     """
-#     def __call__(self, retval=None, source=None, template=None, **kwargs):
-#         # stick child task list into a private instance var
-#         assert template
-#         self._pipeline_render_context = {
-#             'source': source,
-#             'parent': retval
-#         }
-#         self._pipeline_template = template
-#         #self._pipeline_render_retval = retval
-#         #self._pipeline_render_source = source
-#
-#         return super(TemplatedTaskMixin, self).__call__(retval, source, **kwargs)
-#     def render(self):
-#         """Render template wth context."""
-#         # render_context = {
-#         #     'source': self.source,
-#         #     'parent': self.parent_retval
-#         # }
-#         env = Environment()
-#         env.globals.update(self._pipeline_render_context)
-#         return env.from_string(self._pipeline_template).render()
