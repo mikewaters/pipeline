@@ -4,7 +4,7 @@ import subprocess
 
 from pipeline.bases import Registry
 from pipeline.workspace import Workspace
-from pipeline.actions import action, TaskResult
+from pipeline.actions import action
 
 import logging
 logger = logging.getLogger(__name__)

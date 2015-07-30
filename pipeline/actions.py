@@ -115,39 +115,6 @@ class TaskAction(metaclass=ActionRegistry):
         #self.partial = partial
         return partial
 
-    @classmethod
-    def from_dict(cls, dct):
-        """Build action from dictionary.
-        Eventually we will pull things out of the dict and add
-        them to the model.
-
-
-        """
-        callbacks = []  # list of tuples
-        if 'callbacks' in dct:
-            for item in dct['callbacks']:
-                # because predicate is not a normal task attribute, pop it before serializing
-                # default of 'True' will cuase it to always execute.
-                predicate = item.pop('predicate', 'True')
-                callbacks.append((
-                    cls.from_dict(item),
-                    predicate
-                ))
-
-        workspace_cls = dct.get('workspace')
-        workspace_kwargs = dct.get('workspace_kwargs')
-
-        task_action = cls(
-            dct['action'],
-            name=dct.get('name'),
-            callbacks=callbacks,
-            workspace=workspace_cls,
-            workspace_kwargs=workspace_kwargs,
-            **dct.get('kwargs', {})
-        )
-
-        return task_action
-
 
 def register_action(name, task):
     """Convenience function to register a task/action relationship,
