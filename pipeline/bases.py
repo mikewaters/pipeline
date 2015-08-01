@@ -1,4 +1,6 @@
 
+__all__ = ['Registry']
+
 class Registry(type):
     """Simple implementation of the Registry pattern using the
     declarative style.

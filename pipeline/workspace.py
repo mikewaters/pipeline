@@ -1,85 +1,33 @@
 import os
-import pwd
-import six
 import shutil
 import logging                  # <-- beautiful
 import tempfile                  # <-- imports
 import platform                   # <-- inspired by
-import functools                   # <-- miki725!
-import subprocess
 import contextlib
-from copy import deepcopy
 
 #TODO fix commandsession library import
 from commandsession.commandsession import CommandSession
 
-from django.conf import settings
 from pipeline.bases import Registry
-
-from pipeline.utils import rand_suffix
-
+from pipeline.utils import rand_suffix, get_current_user, get_user_environment
 
 logger = logging.getLogger(__name__)
 
-
-def get_current_user():
-    """Return the current user.
-    There are various ways to do this, and I've tried them all.
-    """
-    return pwd.getpwuid(os.getuid())[0]
-
-
-def get_user_environment(username):
-    """Get a user's environment as a dictionary.
-
-    Requires that the current user has sudo privileges.
-
-    :param username: a valid system username
-    :returns: dict of env vars
-    """
-    if get_current_user() == username:
-        cmd = 'env'
-    else:
-        cmd = 'sudo su -l {} -c env'.format(username)
-
-    try:
-        env_str = subprocess.check_output(
-            cmd, stderr=subprocess.PIPE, shell=True
-        )
-    except subprocess.CalledProcessError as e:
-        logger.error("Error getting user {}'s environment: {} {} {}".format(
-            username, e.cmd, e.returncode, e.output.decode('utf-8'))
-        )
-        raise
-    else:
-        # `check_output` returns bytestring in py3
-        # this is a nop in py2
-        env_str = env_str.decode('utf-8')
-        env = {
-            l[0]:l[2] for l in
-            [i.partition('=') for i in env_str.split()]
-        }
-
-        # hack: for some reason the `env` command is returning '/root' for hamster's homedir,
-        # even though /etc/passwd is correct.
-        #FIXME
-        env['HOME'] = "/home/{}".format(username)
-
-        if hasattr(settings, 'PIPELINE_INJECT_ENVIRON'):
-            env.update(settings.PIPELINE_INJECT_ENVIRON)
-
-        return env
+__all__ = [
+    'WorkspaceError', 'BaseWorkspace', 'PythonWorkspace',
+    'Workspace', 'Python3Workspace', 'get_workspace'
+]
 
 
 class WorkspaceError(Exception):
     pass
 
 
-class Workspace(metaclass=Registry):
+class BaseWorkspace(metaclass=Registry):
     """Base class for Workspaces."""
 
 
-class workspace(contextlib.ContextDecorator, Workspace):
+class Workspace(contextlib.ContextDecorator, BaseWorkspace):
     """Workspace.
 
     A container for interacting with the system on a worker.
@@ -91,7 +39,10 @@ class workspace(contextlib.ContextDecorator, Workspace):
     """
     __id = 'workspace'
 
-    def __init__(self, name=None, basepath=None, hints=None, delete=True, reusable=False, session=None, force_shell=True):
+    def __init__(
+            self, name=None, basepath=None, hints=None, delete=True,
+            reusable=False, session=None, force_shell=True
+        ):
         """`reusable` param is only used for testig right now.
 
         :param name:
@@ -159,6 +110,7 @@ class workspace(contextlib.ContextDecorator, Workspace):
         """Run a source's acquisition instructions in the workspace.
         This may involve changing the workspace's working directory
         to the location of the acquired source.
+
         """
         if not hasattr(source, 'acquisition_instructions'):
             logger.debug('source {} does not need to be acquired'.format(source))
@@ -201,7 +153,7 @@ class workspace(contextlib.ContextDecorator, Workspace):
         return False
 
 
-class python_workspace(workspace):
+class PythonWorkspace(Workspace):
     """Python2-specific workspace.
     Wraps execution in a virtualenv, by prepending env directory to PATH.
     """
@@ -210,7 +162,7 @@ class python_workspace(workspace):
 
     @property
     def environ(self):
-        env = super(python_workspace, self).environ
+        env = super(PythonWorkspace, self).environ
         pth = "{}:{}".format(
             os.path.join(self.location, 'env', 'bin'), env['PATH']
         )
@@ -219,7 +171,7 @@ class python_workspace(workspace):
         return env
 
     def __enter__(self):
-        super(python_workspace, self).__enter__()
+        super(PythonWorkspace, self).__enter__()
         
         ret = self.session.check_call("{} env".format(self.venv))
         if not ret == 0:
@@ -233,7 +185,8 @@ class python_workspace(workspace):
 
         return self
 
-class python3_workspace(python_workspace):
+
+class Python3Workspace(PythonWorkspace):
     """Python3-specific workspace.
     Wraps execution in a virtualenv, by prepending env directory to PATH.
     """
@@ -244,9 +197,9 @@ class python3_workspace(python_workspace):
 def get_workspace(workspace_type, *args, **kwargs):
     """Temporary factory function."""
     if workspace_type in ('python', 'python2'):
-        return python_workspace(*args, **kwargs)
+        return PythonWorkspace(*args, **kwargs)
     elif workspace_type == 'python3':
-        return python3_workspace(*args, **kwargs)
-    return workspace(*args, **kwargs)
+        return Python3Workspace(*args, **kwargs)
+    return Workspace(*args, **kwargs)
 
 

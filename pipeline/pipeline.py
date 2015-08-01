@@ -4,6 +4,7 @@ from pipeline.context import BuildContext
 import logging
 logger = logging.getLogger(__name__)
 
+__all__ = ['Pipeline']
 
 class Pipeline(object):
     """Abstraction of an execution pipeline.

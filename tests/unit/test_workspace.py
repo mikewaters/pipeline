@@ -1,13 +1,13 @@
 import os
 from tempfile import TemporaryDirectory
-from pipeline.workspace import workspace
+from pipeline import Workspace
 
 
 def test_workspace_location_create_delete():
     """Test that a workspace location is correct, and that it is
     created and deleted correctly."""
     with TemporaryDirectory() as wdir:
-        with workspace(
+        with Workspace(
             name='blerg',
             basepath=wdir,
             hints=[1, 2, 'a'],

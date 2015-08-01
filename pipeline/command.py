@@ -1,14 +1,12 @@
-import os
-import json
+
 import subprocess
 
-from pipeline.bases import Registry
-from pipeline.workspace import Workspace
 from pipeline.actions import action
 
 import logging
 logger = logging.getLogger(__name__)
 
+__all__ = ['CommandSessionResult', 'shell_command']
 
 
 class CommandSessionResult(object):
@@ -27,7 +25,6 @@ def shell_command(self, source, commands):
     If any command returns nonzero, stop execution.
     """
     assert isinstance(commands, (list, tuple))
-
     with self._pipeline_workspace as workspace:
         try:
             workspace.acquire_source(source)

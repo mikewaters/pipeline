@@ -1,10 +1,10 @@
 import pytest
 import operator
-from pipeline.actions import (
-    TaskAction, register_action, action
+from pipeline import (
+    TaskAction, action, BuildContext, Pipeline
 )
-from pipeline.context import BuildContext
-from pipeline.executor import Executor
+from pipeline.actions import register_action
+
 
 import logging
 logger = logging.getLogger(__name__)

@@ -18,6 +18,8 @@ from jinja2 import Environment
 
 from pipeline.eval import safe_eval
 
+__all__ = ['BuildContext']
+
 
 class BuildContext(object):
     """Container for build-time data.

@@ -10,16 +10,21 @@ itself.
 """
 
 import logging
-import six
 
 from celery import shared_task, Task
 
+from pipeline.bases import Registry
 from pipeline.workspace import get_workspace
 
 logger = logging.getLogger(__name__)
 
+__all__ = ['TaskAction', 'action', 'register_action']
+
+
 class ActionRegistry(type):
-    """Registry for action storage."""
+    """Registry for action storage.
+    Cannot derive from ``pipeline.bases.Registry`` because of reasons.
+    """
     def __init__(cls, name, bases, nmspc):
         super(ActionRegistry, cls).__init__(name, bases, nmspc)
         if not hasattr(cls, '_registry'):
