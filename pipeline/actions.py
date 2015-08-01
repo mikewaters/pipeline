@@ -51,26 +51,15 @@ class ActionRegistry(type):
 class TaskAction(metaclass=ActionRegistry):
     """Base Action class.  Subclasses need to define both
     ``_task`` and ``_name`` class attributes in order to be registered.
-    We distinguish between 'task' and 'partial', even though 'partial'
-    is derived from 'task'.  Having original task laying around is really
-    helpful for testing, as you can make assertions using it that you cannot
-    make with a partial.
-
-    TODO: something is wonky here.  TaskAction instances arent really in
-    the registry, the tasks underneath them are.
-    For instance, I cannot run `TaskAction.get('some_name') and get a TaskAction
-    back; what I get is an actual celery task. (the thing that will be in
-    `self.task` after `TaskAction.__init__` is run). #FIXME
-    Instead, i have to create a TaskAction instance providing the name of
-    the task function.
-
+    You dont need to actiually create these subclasses, see
+    `register_action` for a helper function that handles this.
     """
 
-    def __init__(self, task_name, name=None, callbacks=None, workspace=None, workspace_kwargs=None, **task_kwargs):
+    def __init__(self, task_name, name=None, hooks=None, workspace=None, workspace_kwargs=None, **task_kwargs):
         self.task = self.__class__.get(task_name)
         self.partial = None
-        self.name = name or "{}.{}".format(self.task.__module__, task_name)
-        self.callbacks = callbacks or []
+        self.name = name or task_name  # "{}.{}".format(self.task.__module__, task_name)
+        self.hooks = hooks or []
         self.workspace = workspace
         self.workspace_kwargs = workspace_kwargs or {}
         self.task_kwargs = task_kwargs or {}
@@ -88,7 +77,7 @@ class TaskAction(metaclass=ActionRegistry):
         kwargs.update(self.task_kwargs)
         kwargs.update({
             '_pipeline_chain_state': {
-                'callbacks': self.callbacks,
+                'hooks': self.hooks,
                 'action_name': self.name,
             }
          })

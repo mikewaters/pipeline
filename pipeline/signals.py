@@ -35,10 +35,10 @@ def task_postrun_handler(*args, **kwargs):
     task_kwargs = deepcopy(kwargs['kwargs'])  # inception!
     state = task_kwargs.get('_pipeline_chain_state', {})
 
-    if 'callbacks' in state:
+    if 'hooks' in state:
 
-        child_tasks = state['callbacks']
-        logger.debug('task has callbacks: {}'.format(child_tasks))
+        child_tasks = state['hooks']
+        logger.debug('task has hooks: {}'.format(child_tasks))
         context = task_kwargs['_pipeline_chain_state']['build_context']
 
         callbacks = []
@@ -55,9 +55,9 @@ def task_postrun_handler(*args, **kwargs):
                 source = kwargs['args'][0]  # wtf
                 callbacks.append(action.prepare(source, context))
             else:
-                logger.debug('Callback {} should not execute.'.format(action))
+                logger.debug('hook {} should not execute.'.format(action))
 
         if len(callbacks):
-            logger.debug('Executing some callbacks: {}'.format(callbacks))
+            logger.debug('Executing some hooks: {}'.format(callbacks))
             canvas = group(*callbacks)
             canvas.apply_async()
