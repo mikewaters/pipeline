@@ -17,71 +17,44 @@ def stuff_increment_source(self, source, amount):
 def test_unnamed_action():
     """Test that an unnamed action will get the module.task_name name."""
     actions = [
-        TaskAction.from_dict({
-            'action': 'stuff_increment_source',
-            'kwargs': {
-                'amount': '1'
-            }
-        }),
+        TaskAction(
+            'stuff_increment_source',
+            amount='1'
+         ),
     ]
-    executor = Executor()
-    result = executor.schedule(actions, 1, None).get()
-    assert '{}.stuff_increment_source'.format(__name__) in result.results
+    executor = Pipeline(actions)
+    result = executor.schedule(1).get()
+    assert 'stuff_increment_source' in result.results
 
 def test_single_action():
     """Test a single action scheduled by the executor.
     """
     actions = [
-        TaskAction.from_dict({
-            'action': 'stuff_increment_source',
-            'name': 'increment',
-            'kwargs': {
-                'amount': '1'
-            }
-        }),
+        TaskAction('stuff_increment_source',
+            name= 'increment',
+            amount='1'
+        )
     ]
-    executor = Executor()
-    result = executor.schedule(actions, 1, None).get()
+    executor = Pipeline(actions)
+    result = executor.schedule(1).get()
     assert result.results['increment'] == 2
 
 def test_two_actions():
     """Test a single action scheduled by the executor.
     """
     actions = [
-        TaskAction.from_dict({
-            'action': 'stuff_increment_source',
-            'name': 'increment',
-            'kwargs': {
-                'amount': '1'
-            }
-        }),
-        TaskAction.from_dict({
-            'action': 'stuff_increment_source',
-            'name': 'increment_again',
-            'kwargs': {
-                'amount': '{{ increment }}'
-            }
-        }),
+        TaskAction('stuff_increment_source',
+            name= 'increment',
+            amount='1'
+        ),
+        TaskAction('stuff_increment_source',
+            name= 'increment_again',
+            amount='{{ increment }}'
+        )
     ]
-    executor = Executor()
-    result = executor.schedule(actions, 1, None).get()
+    executor = Pipeline(actions)
+    result = executor.schedule(1).get()
     assert result.results['increment_again'] == 3
-
-def test_from_dict():
-    @action(name='task_test_from_dict')
-    def task_test_from_dict(self):
-        pass
-
-    dct = {
-        "name": "task_test_from_dict_action",
-        "task": "task_test_from_dict",
-    }
-    task_action = TaskAction.from_dict(dct)
-    assert task_action.name == "task_test_from_dict_action"
-    assert task_action.task.name == 'task_test_from_dict'
-    assert not task_action.children
-    assert not task_action.partial
-    assert not task_action.task_kwargs
 
 
 @pytest.mark.xfail(reason='non-keyarg passing to tasks is no longer supported')
@@ -115,7 +88,7 @@ class TestActions:
     def test_simple_action_from_dict(self):
         """Test that TaskAction.from_dict() with a simple action."""
         @action(called=False, name='test_task_simple')
-        def test_simple(self):
+        def test_simple(self, source):
             self.called = True
             return 42
 
@@ -123,9 +96,9 @@ class TestActions:
             "name": "some_action",
             "task": "test_task_simple",
         }
-        task_action = TaskAction.from_dict(dct)
-        task_action.prepare(BuildContext(1))
-        ret = task_action.delay().get()
+        task_action = TaskAction(dct['task'], name=dct['name'])
+        partial = task_action.prepare(None, BuildContext())
+        ret = partial.delay().get()
 
         assert task_action.task.called
         assert ret.results['some_action'] == 42
@@ -137,32 +110,26 @@ class TestActions:
         so we can make assertions about the behaviro after the fact.
         """
         @action(called=False, verify_kwargs={})
-        def test_task_false(self, some_attribute=None):
+        def test_task_false(self, source, some_attribute=None):
             self.called = True
             self.verify_kwargs['some_attribute'] = some_attribute
             return False
 
         @action(called=False)
-        def test_task_errback(self):
+        def test_task_errback(self, source):
             self.called = True
             return 'BLAH'
 
         @action(called=False)
-        def test_task_callback(self):
+        def test_task_callback(self, source):
             self.called = True
 
 
-        dct = {
-            "task": "test_task_false",
-            "kwargs": {
-                'some_attribute': 42,
-            },
-        }
-        task_action = TaskAction.from_dict(dct)
+        task_action = TaskAction('test_task_false', some_attribute=42)
 
         source = 12345
-        task_action.prepare(BuildContext(source))
-        ret = task_action.delay().get()
+        partial = task_action.prepare(source, BuildContext())
+        ret = partial.delay().get()
 
         # assert that action was called properly
         assert 'some_attribute' in task_action.task.verify_kwargs
@@ -177,7 +144,7 @@ class TestActions:
         # (i.e. the failure handler's return value is not used)
         assert isinstance(ret, BuildContext)
 
-
+    @pytest.mark.xfail(reason='removed TaskAction.from_dict, so manually need to create the action with callbacks')
     def test_callback_action_from_dict_with_children(self):
         """Test that TaskAction.from_dict() with a simple action.
         TESTING NOTES: here we are capturing passed args as instance vars,

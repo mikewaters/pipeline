@@ -1,8 +1,9 @@
 """Sandbox for testing celery's behavior in certain scenarios.
 """
-
+import pytest
 from celery import  chain, task
 
+pytest.mark.xfail(reason='this feature is no longer being used, TODO')
 def test_mutable_chain_with_multiple_return_values():
     """See what happens when a task in a chain returns
     multiple values
