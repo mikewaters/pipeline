@@ -26,30 +26,30 @@ def shell_command(self, source, commands):
     """
     assert isinstance(commands, (list, tuple))
     with self._pipeline_workspace as workspace:
-        try:
-            workspace.acquire_source(source)
-        except subprocess.CalledProcessError as ex:
-            logger.critical('Shell error {} acquiring source {}. Log: {}'.format(
-                str(ex), source, workspace.session.log
-            ))
-            raise
-        except Exception as ex:
-            logger.error('Error {} acquiring source {}'.format(str(ex), source))
-            raise
-        else:
-            for command in commands:
-                logger.debug('Running command {}'.format(command))
-                try:
-                    workspace.session.check_call(command)
-                except subprocess.CalledProcessError as ex:
-                    logger.debug('Command {} failed with {}.'.format(
-                        command, str(ex)
-                    ))
-                    break
-                else:
-                    logger.debug("Command {} succeeded.".format(
-                        command
-                    ))
-                finally:
-                    logger.debug("Comand {} returned code {}".format(command, workspace.session.last_returncode))
+        # try:
+        #     workspace.acquire_source(source)
+        # except subprocess.CalledProcessError as ex:
+        #     logger.critical('Shell error {} acquiring source {}. Log: {}'.format(
+        #         str(ex), source, workspace.session.log
+        #     ))
+        #     raise
+        # except Exception as ex:
+        #     logger.error('Error {} acquiring source {}'.format(str(ex), source))
+        #     raise
+        # else:
+        for command in commands:
+            logger.debug('Running command {}'.format(command))
+            try:
+                workspace.session.check_call(command)
+            except subprocess.CalledProcessError as ex:
+                logger.debug('Command {} failed with {}.'.format(
+                    command, str(ex)
+                ))
+                break
+            else:
+                logger.debug("Command {} succeeded.".format(
+                    command
+                ))
+            finally:
+                logger.debug("Comand {} returned code {}".format(command, workspace.session.last_returncode))
         return CommandSessionResult(workspace.session)

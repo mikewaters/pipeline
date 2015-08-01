@@ -196,36 +196,36 @@ class PipelineTask(Task):
         # allow these exeptions to propagate, since if they werent
         # set it means the action was never prepared, which is a
         # violation of the api
-        state = kwargs.pop('_pipeline_chain_state')
 
-        workspace_instructions = kwargs.pop('_pipeline_workspace')
-
-        # this needs to be run on the worker, not the broker
-        self._pipeline_workspace = get_workspace(
-            workspace_instructions['klass'],
-            **workspace_instructions['kwargs']
-        )
-
-        self._pipeline_chain_state = state
+        self._pipeline_chain_state = kwargs.pop('_pipeline_chain_state')
 
         if not len(args) and not 'build_context' in self._pipeline_chain_state:
-            raise ValueError('something went sideways')
+            raise RuntimeError('something went sideways')
 
         # store the result of the last-executed task (if one) into self.
         # we need to rely on the system to make sure that a task that
         # comes in with no args (but having a state) truly is the first task in a chain,
         # and it should already have a build context provided to it
         # by the executor.
-
-        if len(args):  # maybe should be `len(args) > 1`, TODO?
-            #TODO: i use type().__name__ here to reduce coupling
-            # and avoid circular imports,  find a better way to do this.
+        if len(args) > 1:
+            # I use type().__name__ here to reduce coupling
+            # and avoid circular imports.
             if type(args[0]).__name__ == 'BuildContext':
                 # means we are a non-zeroth element in a chain,
                 # and the pipeline task wraper has leveraged mutable
                 # signatures to pass the build context to us.
                 self._pipeline_chain_state['build_context'] = args[0]
                 args = args[1:]
+
+        workspace_instructions = kwargs.pop('_pipeline_workspace')
+
+        # Set up the workspace.
+        source = args[0]
+        self._pipeline_workspace = get_workspace(
+            workspace_instructions['klass'],
+            source,
+            **workspace_instructions['kwargs']
+        )
 
         #REMOVED, because who cares?
         # `source` should be the zeroth non-key arg

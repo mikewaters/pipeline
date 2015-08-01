@@ -8,6 +8,7 @@ def test_workspace_location_create_delete():
     created and deleted correctly."""
     with TemporaryDirectory() as wdir:
         with Workspace(
+            None,
             name='blerg',
             basepath=wdir,
             hints=[1, 2, 'a'],

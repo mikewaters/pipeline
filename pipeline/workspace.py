@@ -40,7 +40,7 @@ class Workspace(contextlib.ContextDecorator, BaseWorkspace):
     __id = 'workspace'
 
     def __init__(
-            self, name=None, basepath=None, hints=None, delete=True,
+            self, source, name=None, basepath=None, hints=None, delete=True,
             reusable=False, session=None, force_shell=True
         ):
         """`reusable` param is only used for testig right now.
@@ -58,8 +58,8 @@ class Workspace(contextlib.ContextDecorator, BaseWorkspace):
             use the given session, otherwise it will create one.  Useful
             if the cller wants to inspect the session log after-thefact.
         """
+        self.source = source
         self.user = get_current_user()
-
         self.delete = delete
 
         path_parts = hints or []
@@ -84,12 +84,24 @@ class Workspace(contextlib.ContextDecorator, BaseWorkspace):
 
     @property
     def cwd(self):
+        """Expose the workspace's current working directry.
+        """
         return self._cwd
 
     @cwd.setter
     def cwd(self, directory):
         self._cwd = directory
         self.session._cwd = self._cwd
+    #
+    # @property
+    # def source(self):
+    #     """Store the `source` used by the consumer of the workspace.
+    #     """
+    #     return self._source
+    #
+    # @source.setter
+    # def source(self, value):
+    #     self._source = value
 
     @property
     def environ(self):
@@ -103,17 +115,17 @@ class Workspace(contextlib.ContextDecorator, BaseWorkspace):
             )
         return env
 
-    def acquire_source(self, source):
+    def _acquire_source(self):
         """Run a source's acquisition instructions in the workspace.
         This may involve changing the workspace's working directory
         to the location of the acquired source.
 
         """
-        if not hasattr(source, 'acquisition_instructions'):
-            logger.debug('source {} does not need to be acquired'.format(source))
+        if not hasattr(self.source, 'acquisition_instructions'):
+            logger.debug('source {} does not need to be acquired'.format(self.source))
             return 
 
-        instructions = source.acquisition_instructions
+        instructions = self.source.acquisition_instructions
 
         self.session.check_call(instructions['command'])
 
@@ -138,6 +150,9 @@ class Workspace(contextlib.ContextDecorator, BaseWorkspace):
             raise WorkspaceError(
                 "Could not create workspace at %s" % self.location
             ) from exc
+
+        #TODO figure out what to do if this raises an exception
+        self._acquire_source()
 
         return self
 
@@ -191,12 +206,12 @@ class Python3Workspace(PythonWorkspace):
     venv = 'pyvenv'
 
 
-def get_workspace(workspace_type, *args, **kwargs):
+def get_workspace(workspace_type, source, *args, **kwargs):
     """Temporary factory function."""
     if workspace_type in ('python', 'python2'):
-        return PythonWorkspace(*args, **kwargs)
+        return PythonWorkspace(source, *args, **kwargs)
     elif workspace_type == 'python3':
-        return Python3Workspace(*args, **kwargs)
-    return Workspace(*args, **kwargs)
+        return Python3Workspace(source, *args, **kwargs)
+    return Workspace(source, *args, **kwargs)
 
 
