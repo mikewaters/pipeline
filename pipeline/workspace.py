@@ -60,9 +60,6 @@ class Workspace(contextlib.ContextDecorator, BaseWorkspace):
         """
         self.user = get_current_user()
 
-        if not basepath:
-            basepath = settings.PIPELINE_WORKSPACE_ROOT
-
         self.delete = delete
 
         path_parts = hints or []
@@ -126,7 +123,7 @@ class Workspace(contextlib.ContextDecorator, BaseWorkspace):
             )
             logger.debug('cwd changed to {}'.format(self.cwd))
 
-        for command in instructions['post_commands']:
+        for command in instructions.get('post_commands', []):
             self.session.check_call(command)
 
     def __enter__(self):

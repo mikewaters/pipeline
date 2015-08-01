@@ -32,8 +32,10 @@ def shell_command(self, source, commands):
             logger.critical('Shell error {} acquiring source {}. Log: {}'.format(
                 str(ex), source, workspace.session.log
             ))
+            raise
         except Exception as ex:
             logger.error('Error {} acquiring source {}'.format(str(ex), source))
+            raise
         else:
             for command in commands:
                 logger.debug('Running command {}'.format(command))
