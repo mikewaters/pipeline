@@ -70,6 +70,7 @@ class TaskAction(metaclass=ActionRegistry):
         All task_kwargs will be used to generate the partial.
 
         :param name: the action name in registry
+        :param build_context: a BuildContext instance/subclass
         :returns: a TaskAction containing the task and partial
         """
         task = self.task
@@ -86,12 +87,14 @@ class TaskAction(metaclass=ActionRegistry):
         # is executed during task runtime on the worker.
         # Here we are running on the broker, priming the chain with
         # an initial build context.
-        # TODO this responsibility probably belongs in the executor, not here.
         if build_context:
             kwargs['_pipeline_chain_state'].update(
                 {'build_context': build_context}
             )
 
+        # send workspace instructions; the actual workspace
+        # setup will be left to the worker
+        self.workspace_kwargs['source'] = source
         kwargs.update({'_pipeline_workspace': {
             'klass': self.workspace,
             'kwargs': self.workspace_kwargs
@@ -220,10 +223,10 @@ class PipelineTask(Task):
         workspace_instructions = kwargs.pop('_pipeline_workspace')
 
         # Set up the workspace.
-        source = args[0]
+        #source = args[0]
         self._pipeline_workspace = get_workspace(
             workspace_instructions['klass'],
-            source,
+           # source,
             **workspace_instructions['kwargs']
         )
 

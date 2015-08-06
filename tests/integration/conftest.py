@@ -3,6 +3,7 @@ conftest.py
 
 py.test hook file
 """
+import pytest
 
 # Note the lack of pytest_configure, it is on purpose.
 # The import of tasks in tests/integration/__init__.py (

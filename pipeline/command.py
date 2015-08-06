@@ -25,18 +25,8 @@ def shell_command(self, source, commands):
     If any command returns nonzero, stop execution.
     """
     assert isinstance(commands, (list, tuple))
+
     with self._pipeline_workspace as workspace:
-        # try:
-        #     workspace.acquire_source(source)
-        # except subprocess.CalledProcessError as ex:
-        #     logger.critical('Shell error {} acquiring source {}. Log: {}'.format(
-        #         str(ex), source, workspace.session.log
-        #     ))
-        #     raise
-        # except Exception as ex:
-        #     logger.error('Error {} acquiring source {}'.format(str(ex), source))
-        #     raise
-        # else:
         for command in commands:
             logger.debug('Running command {}'.format(command))
             try:
@@ -51,5 +41,7 @@ def shell_command(self, source, commands):
                     command
                 ))
             finally:
-                logger.debug("Comand {} returned code {}".format(command, workspace.session.last_returncode))
+                logger.debug("Comand {} returned code {}".format(
+                    command, workspace.session.last_returncode)
+                )
         return CommandSessionResult(workspace.session)
