@@ -13,21 +13,58 @@ NOTES:
 Features:
     -
 """
-from pipeline import Pipeline, TaskAction, action
+import pytest
+from pipeline import Pipeline, TaskAction
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-@action
-def increment(self, source, num='1', by='1'):
-    """An action that increments a value.
+
+def test_unnamed_action_in_pipeline():
+    """Test that an unnamed action will get the module.task_name name."""
+    actions = [
+        TaskAction(
+            'stuff_increment_source',
+            amount='1'
+         ),
+    ]
+    executor = Pipeline(actions)
+    result = executor.schedule(1).get()
+    assert 'stuff_increment_source' in result.results
+
+def test_single_action_in_pipeline():
+    """Test a single action scheduled by the executor.
     """
-    return int(num) + int(by)
+    actions = [
+        TaskAction('stuff_increment_source',
+            name= 'increment',
+            amount='1'
+        )
+    ]
+    executor = Pipeline(actions)
+    result = executor.schedule(1).get()
+    assert result.results['increment'] == 2
+
+def test_two_actions_in_pipeline():
+    """Test a single action scheduled by the executor.
+    """
+    actions = [
+        TaskAction('stuff_increment_source',
+            name= 'increment',
+            amount='1'
+        ),
+        TaskAction('stuff_increment_source',
+            name= 'increment_again',
+            amount='{{ increment }}'
+        )
+    ]
+    executor = Pipeline(actions)
+    result = executor.schedule(1).get()
+    assert result.results['increment_again'] == 3
 
 
-
-def test_context_and_kwargs_application():
+def test_context_and_kwargs_application_in_pipeline():
     """Test that both build context and user-supplied kwargs are applied
     to a series of tasks in a chain.
     """
@@ -42,14 +79,9 @@ def test_context_and_kwargs_application():
     assert result.results['increment_once_more'] == 3
 
 
-def test_named_actions():
+def test_named_actions_in_pipeline():
     """Test that named actions store their name in build context.
     """
-    @action(called=False)
-    def named_action(self, source):
-        self.called = True
-        return True
-
     dct = {
         "name": "mytask",
         "task": "named_action",
@@ -61,3 +93,4 @@ def test_named_actions():
 
     assert 'mytask' in ret.results.keys()
     assert bool(ret.results['mytask'])
+

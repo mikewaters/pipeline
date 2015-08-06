@@ -139,12 +139,6 @@ def pipeline_task_wrapper(f):
         args, kwargs = self.build_context.render_params(source, *args, **kwargs)
         ret = f(*args, **kwargs)
 
-        # i think this scenario is only relevant for tests,
-        #maybe remove it??  TODO
-        if not hasattr(self, '_pipeline_chain_state'):
-            # not a chained pipeline task
-            raise NotImplementedError
-
         return self._pipeline_chain_state['build_context'].update(
             self._pipeline_chain_state['action_name'],
             ret
@@ -184,7 +178,6 @@ def action(*args, **kwargs):
     if len(args) == 1 and callable(args[0]):
         return wrapper(**kwargs)(args[0])
     return wrapper(*args, **kwargs)
-
 
 
 class PipelineTask(Task):

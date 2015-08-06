@@ -1,7 +1,7 @@
 import pytest
 import operator
 from pipeline import (
-    TaskAction, action, BuildContext, Pipeline
+    TaskAction, action, BuildContext
 )
 from pipeline.actions import register_action
 
@@ -14,47 +14,7 @@ def stuff_increment_source(self, source, amount):
     """Print some stuff to the console."""
     return operator.add(source, int(amount))
 
-def test_unnamed_action():
-    """Test that an unnamed action will get the module.task_name name."""
-    actions = [
-        TaskAction(
-            'stuff_increment_source',
-            amount='1'
-         ),
-    ]
-    executor = Pipeline(actions)
-    result = executor.schedule(1).get()
-    assert 'stuff_increment_source' in result.results
 
-def test_single_action():
-    """Test a single action scheduled by the executor.
-    """
-    actions = [
-        TaskAction('stuff_increment_source',
-            name= 'increment',
-            amount='1'
-        )
-    ]
-    executor = Pipeline(actions)
-    result = executor.schedule(1).get()
-    assert result.results['increment'] == 2
-
-def test_two_actions():
-    """Test a single action scheduled by the executor.
-    """
-    actions = [
-        TaskAction('stuff_increment_source',
-            name= 'increment',
-            amount='1'
-        ),
-        TaskAction('stuff_increment_source',
-            name= 'increment_again',
-            amount='{{ increment }}'
-        )
-    ]
-    executor = Pipeline(actions)
-    result = executor.schedule(1).get()
-    assert result.results['increment_again'] == 3
 
 
 @pytest.mark.xfail(reason='non-keyarg passing to tasks is no longer supported')

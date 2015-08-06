@@ -18,7 +18,19 @@ import pytest
 # > unset DJANGO_SETTINGS_MODULE
 # > celery -A integration worker -l debug
 
+@pytest.fixture
+def scoped_broker():
+    """Fixture that privides a locally-scoped Celery broker."""
+    from celery import Celery
 
+    class Config:
+        BROKER_URL = ''  #'redis://localhost:6380/0'
+        CELERY_RESULT_BACKEND = '' # 'redis://localhost:6380/0'
+        CELERY_ALWAYS_EAGER = True
+
+    app = Celery()
+    app.config_from_object(Config)
+    return app
 
 def pytest_addoption(parser):
     parser.addoption(
