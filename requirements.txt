@@ -8,3 +8,4 @@ cached_property
 commandsession==0.3
 pip
 tox
+mike
