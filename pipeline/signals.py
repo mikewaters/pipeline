@@ -1,11 +1,13 @@
 """
 Pipeline celery signal handlers
 
+TODO: restrict hooks from having hooks; could end up in an infinite loop
+if a task is given itself as a hook.
 """
 from copy import deepcopy
 
 from celery import group
-from celery.signals import task_postrun
+from celery.signals import task_postrun, task_failure, task_revoked, task_prerun
 
 from pipeline.actions import PipelineTask
 from pipeline.eval import safe_eval
@@ -14,20 +16,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-
-@task_postrun.connect()
-def task_postrun_handler(*args, **kwargs):
-    """Action post-run signal handler to execute handlers.
+def execute_hooks(event_name, *args, **kwargs):
+    """Execute action hooks based upon parent task state.
     """
-    assert 'retval' in kwargs
-    assert 'task' in kwargs
-    assert 'sender' in kwargs
-    assert 'state' in kwargs
-
-    # skip failed tasks
-    if kwargs['state'] != 'SUCCESS':
-        return
-
     # skip tasks that aren't part of pipeline
     if not isinstance(kwargs['sender'], PipelineTask):
         return
@@ -37,15 +28,23 @@ def task_postrun_handler(*args, **kwargs):
 
     if 'hooks' in state:
 
-        child_tasks = state['hooks']
-        logger.debug('task has hooks: {}'.format(child_tasks))
+        hooks = [
+            h for h in state['hooks'] if \
+            h.event == event_name
+        ]
+
+        if not hooks:
+            return []
+
+        logger.debug('task has hooks: {}'.format(hooks))
         context = task_kwargs['_pipeline_chain_state']['build_context']
 
         callbacks = []
-        for action, predicate in child_tasks:
+
+        for hook in hooks:
             try:
                 should_execute = safe_eval(
-                    predicate,
+                    hook.predicate,
                     context.eval_context
                 )
             except:
@@ -53,11 +52,35 @@ def task_postrun_handler(*args, **kwargs):
 
             if should_execute:
                 source = kwargs['args'][0]  # wtf
-                callbacks.append(action.prepare(source, context))
+                callbacks.append(hook.task_action.prepare(source, context))
             else:
-                logger.debug('hook {} should not execute.'.format(action))
+                logger.debug('hook {} should not execute.'.format(hook.task_action))
 
         if len(callbacks):
             logger.debug('Executing some hooks: {}'.format(callbacks))
             canvas = group(*callbacks)
-            canvas.apply_async()
+            return canvas.apply_async()
+
+    return []
+
+
+@task_postrun.connect
+def task_success_handler(*args, **kwargs):
+    """We use the postrun handler instead of success
+    handler because we require the original task arguments in order
+    to access the chain state (where the hooks are stored).
+    The success handler does not send this.
+    """
+    if kwargs['state'] == 'SUCCESS':
+        execute_hooks('post', *args, **kwargs)
+
+
+@task_revoked.connect
+@task_failure.connect
+def task_failure_handler(*args, **kwargs):
+    execute_hooks('error', *args, **kwargs)
+
+
+@task_prerun.connect
+def task_prerun_handler(*args, **kwargs):
+    execute_hooks('pre', *args, **kwargs)

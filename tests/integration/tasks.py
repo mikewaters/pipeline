@@ -20,6 +20,10 @@ def increment(self, source, num='1', by='1'):
 def increment_call_count(self, source):
     self.call_count += 1
 
+@action
+def err(self, source):
+    raise ValueError('nope')
+
 @action(called=False)
 def named_action(self, source):
     self.called = True

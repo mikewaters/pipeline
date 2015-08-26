@@ -13,12 +13,11 @@ import logging
 
 from celery import shared_task, Task
 
-from pipeline.bases import Registry
 from pipeline.workspace import get_workspace
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['TaskAction', 'action', 'register_action']
+__all__ = ['TaskAction', 'action', 'register_action', 'ActionHook']
 
 
 class ActionRegistry(type):
@@ -105,12 +104,16 @@ class TaskAction(metaclass=ActionRegistry):
             **kwargs
         )
 
-        #TODO: just return the partial instead of hanging off self
-        # this will necessitate removal of delay() method, which I think
-        # is only used for tests
-        # ^^ This will require some plumbing changes - @mike
-        #self.partial = partial
         return partial
+
+
+class ActionHook(object):
+    """Expresses a hook or callback for a TaskAction.
+    """
+    def __init__(self, task_action_name, predicate=None, event=None, **task_kwargs):
+        self.predicate = predicate if predicate is not None else 'True'
+        self.event = event if event is not None else 'post'
+        self.task_action = TaskAction(task_action_name, **task_kwargs)
 
 
 def register_action(name, task):
@@ -118,6 +121,7 @@ def register_action(name, task):
     without having to define a TaskAction subclass.
     """
     type('__TempCls', (TaskAction,), {'_name': name, '_task': task})
+
 
 def pipeline_task_wrapper(f):
     """Small wrapper around celery tasks registered as Actions.
