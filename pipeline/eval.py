@@ -20,6 +20,17 @@ class Matcher(metaclass=Registry):
         """
         raise NotImplementedError
 
+
+def matcher(func):
+    """Decorator for registering a matching function.
+
+    There is some mother-f*cking black magic here, this whole
+    'registry' mess needs to be refactored.
+    """
+    type('__TempCls', (Matcher,), {'___TempCls__id': func.__name__})
+    return func
+
+
 def get_default_builtins():
     """Get the allowed eval() builtins.
     """
@@ -28,6 +39,7 @@ def get_default_builtins():
         if k in ALLOWED_BUILTINS:
             ret[k] = v
     return ret
+
 
 def safe_eval(expression, _locals, _globals=None):
     """Run eval in a semi-safe manner.

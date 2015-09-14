@@ -1,6 +1,6 @@
 import pytest
 
-from pipeline.eval import evaluate_single_criterion, Matcher
+from pipeline.eval import evaluate_single_criterion, Matcher, matcher
 
 class Source(object):
     pass
@@ -19,6 +19,15 @@ def test_custom_matcher():
         {'source': source},
         ['source.test', 'matches', 'test_matcher']
     )
+
+def test_register_matcher():
+    """Test that matcher decorator works."""
+    @matcher
+    def x():
+        pass
+
+    assert 'x' in Matcher._registry
+
 
 def test_config_eval():
     """Tests for the evaluate_single_criterion function."""
