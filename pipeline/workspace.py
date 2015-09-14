@@ -8,7 +8,7 @@ import contextlib
 #TODO fix commandsession library import
 from commandsession.commandsession import CommandSession
 
-from pipeline.bases import Registry
+from pipeline.registry import Registry
 from pipeline.utils import rand_suffix, get_current_user, get_user_environment
 
 logger = logging.getLogger(__name__)

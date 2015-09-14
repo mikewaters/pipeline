@@ -5,8 +5,20 @@ Evaluation helpers.
 """
 import re
 
+from pipeline.registry import Registry
+
 ALLOWED_BUILTINS = ('bool',)
 
+
+class Matcher(metaclass=Registry):
+    """Base class for a criteria matcher.
+    """
+    def __call__(self, criteria):
+        """Determine if `criteria` meets some expectations.
+        :param criteria: criteria to use in match
+        :returns: bool
+        """
+        raise NotImplementedError
 
 def get_default_builtins():
     """Get the allowed eval() builtins.
@@ -43,7 +55,6 @@ def safe_eval(expression, _locals, _globals=None):
         print(ex)
         return expression
     return ret
-
 
 
 def evaluate_single_criterion(data, criterion):
@@ -84,10 +95,19 @@ def evaluate_single_criterion(data, criterion):
         return not bool(re.search(
             rvalue, lvalue
         ))
+    elif oper == "matches":
+        # custom criteria matching
+        matcher_klass = Matcher.get(rvalue)
+        if not matcher_klass:
+            raise NotImplementedError(
+                'matcher {} not found'.format(rvalue)
+            )
+        return matcher_klass()(lvalue)
     else:
         raise NotImplementedError(
             'operator {} not supported'.format(oper)
         )
+
 
 def evaluate_criteria(data, criteria):
     """Check to see if the criteria matches data.

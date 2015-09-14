@@ -1,12 +1,27 @@
 import pytest
 
-from pipeline.eval import evaluate_single_criterion
+from pipeline.eval import evaluate_single_criterion, Matcher
 
 class Source(object):
     pass
 
-def test_config_eval():
+def test_custom_matcher():
+    """Test that a custom criteria matcher functions."""
+    class TestMatcher(Matcher):
+        __id = "test_matcher"
+        def __call__(self, criteria):
+            return criteria == 'qwerty'
 
+    source = Source()
+    setattr(source, 'test', 'qwerty')
+
+    assert evaluate_single_criterion(
+        {'source': source},
+        ['source.test', 'matches', 'test_matcher']
+    )
+
+def test_config_eval():
+    """Tests for the evaluate_single_criterion function."""
     source = Source()
     setattr(source, 'test', 'qwerty')
     assert evaluate_single_criterion(
