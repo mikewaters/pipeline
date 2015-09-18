@@ -14,22 +14,12 @@ __all__ = ['matcher', 'safe_eval', 'evaluate_criteria', 'evaluate_single_criteri
 class Matcher(metaclass=Registry):
     """Base class for a criteria matcher.
     """
-    def __call__(self, criteria):
-        """Determine if `criteria` meets some expectations.
-        :param criteria: criteria to use in match
+    def __call__(self, data):
+        """Determine if `data` meets some expectations.
+        :param data: data to use in match
         :returns: bool
         """
         raise NotImplementedError
-
-
-def matcher(func):
-    """Decorator for registering a matching function.
-
-    There is some mother-f*cking black magic here, this whole
-    'registry' mess needs to be refactored.
-    """
-    type('__TempCls', (Matcher,), {'___TempCls__id': func.__name__})
-    return func
 
 
 def get_default_builtins():

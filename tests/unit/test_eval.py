@@ -9,8 +9,8 @@ def test_custom_matcher():
     """Test that a custom criteria matcher functions."""
     class TestMatcher(Matcher):
         __id = "test_matcher"
-        def __call__(self, criteria):
-            return criteria == 'qwerty'
+        def __call__(self, data):
+            return data == 'qwerty'
 
     source = Source()
     setattr(source, 'test', 'qwerty')
@@ -22,9 +22,8 @@ def test_custom_matcher():
 
 def test_register_matcher():
     """Test that matcher decorator works."""
-    @matcher
-    def x():
-        pass
+    class TestRegisteredMatcher(Matcher):
+        __id = 'x'
 
     assert 'x' in Matcher._registry
 
