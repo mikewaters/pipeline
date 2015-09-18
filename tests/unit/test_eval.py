@@ -1,6 +1,6 @@
 import pytest
 
-from pipeline.eval import evaluate_single_criterion, Matcher, matcher
+from pipeline.criteria import evaluate_single_criterion, Matcher
 
 class Source(object):
     pass

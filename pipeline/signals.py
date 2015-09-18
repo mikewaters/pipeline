@@ -10,7 +10,7 @@ from celery import group
 from celery.signals import task_postrun, task_failure, task_revoked, task_prerun
 
 from pipeline.actions import PipelineTask
-from pipeline.eval import safe_eval
+from pipeline.criteria import safe_eval
 
 import logging
 logger = logging.getLogger(__name__)

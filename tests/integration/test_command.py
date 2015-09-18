@@ -1,6 +1,6 @@
 
 from pipeline.actions import TaskAction
-from pipeline.pipeline import Pipeline #TODO remove, need to test without it
+from pipeline.executor import Pipeline #TODO remove, need to test without it
 
 
 class DummySource(object):

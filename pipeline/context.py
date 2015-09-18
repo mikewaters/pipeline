@@ -16,7 +16,7 @@ TODO:
 import six
 from jinja2 import Environment
 
-from pipeline.eval import safe_eval
+from pipeline.criteria import safe_eval
 
 __all__ = ['BuildContext']
 

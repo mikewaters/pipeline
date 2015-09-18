@@ -12,5 +12,5 @@ import pipeline.workspace
 # shortcut imports for common abstractions
 from pipeline.actions import TaskAction, action, ActionHook
 from pipeline.context import BuildContext
-from pipeline.pipeline import Pipeline
+from pipeline.executor import Pipeline
 from pipeline.workspace import Workspace

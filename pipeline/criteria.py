@@ -9,6 +9,7 @@ from pipeline.registry import Registry
 
 ALLOWED_BUILTINS = ('bool',)
 
+__all__ = ['matcher', 'safe_eval', 'evaluate_criteria', 'evaluate_single_criterion']
 
 class Matcher(metaclass=Registry):
     """Base class for a criteria matcher.
