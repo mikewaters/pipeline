@@ -2,9 +2,31 @@ import os
 import pwd
 import random
 import logging
+import importlib
+import inspect
 import subprocess
 
 logger = logging.getLogger(__name__)
+
+
+def jinja_filters_from_module(module_path):
+    """Acquire the names of jinja filters in a given module.
+    :param module_path: pth to module, e.g. "package.module.file"
+    :returns: {'name': 'importable path'} dict
+    """
+    filters = {}
+
+    try:
+        mod = importlib.import_module(module_path)
+    except ImportError:
+        return filters
+
+    for name, func in inspect.getmembers(mod):
+        for attr in ('contextfilter', 'evalcontextfilter', 'environmentfilter'):
+            if inspect.isfunction(func) and hasattr(func, attr):
+                filters[name] = func
+
+    return filters
 
 
 def rand_suffix():

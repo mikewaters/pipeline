@@ -143,7 +143,7 @@ def pipeline_task_wrapper(f):
         args, kwargs = self.build_context.render_params(source, *args, **kwargs)
         ret = f(*args, **kwargs)
 
-        return self._pipeline_chain_state['build_context'].update(
+        return self._pipeline_chain_state['build_context'].update_state(
             self._pipeline_chain_state['action_name'],
             ret
         )

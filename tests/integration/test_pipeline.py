@@ -20,47 +20,54 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-
 def test_unnamed_action_in_pipeline():
     """Test that an unnamed action will get the module.task_name name."""
     actions = [
         TaskAction(
             'stuff_increment_source',
             amount='1'
-         ),
+        ),
     ]
-    executor = Pipeline(actions)
-    result = executor.schedule(1).get()
+    source = 1
+    executor = Pipeline(source, actions)
+    result = executor.schedule().get()
     assert 'stuff_increment_source' in result.results
+
 
 def test_single_action_in_pipeline():
     """Test a single action scheduled by the executor.
     """
     actions = [
-        TaskAction('stuff_increment_source',
-            name= 'increment',
+        TaskAction(
+            'stuff_increment_source',
+            name='increment',
             amount='1'
         )
     ]
-    executor = Pipeline(actions)
-    result = executor.schedule(1).get()
+    source = 1
+    executor = Pipeline(source, actions)
+    result = executor.schedule().get()
     assert result.results['increment'] == 2
+
 
 def test_two_actions_in_pipeline():
     """Test a single action scheduled by the executor.
     """
     actions = [
-        TaskAction('stuff_increment_source',
-            name= 'increment',
+        TaskAction(
+            'stuff_increment_source',
+            name='increment',
             amount='1'
         ),
-        TaskAction('stuff_increment_source',
-            name= 'increment_again',
+        TaskAction(
+            'stuff_increment_source',
+            name='increment_again',
             amount='{{ increment }}'
         )
     ]
-    executor = Pipeline(actions)
-    result = executor.schedule(1).get()
+    source = 1 
+    executor = Pipeline(source, actions)
+    result = executor.schedule().get()
     assert result.results['increment_again'] == 3
 
 
@@ -72,10 +79,10 @@ def test_context_and_kwargs_application_in_pipeline():
         TaskAction('increment', num='0'),
         TaskAction('increment', name='increment_again', num='{{ increment }}'),
         TaskAction('increment', name='increment_once_more', num='{{ increment_again }}')
-
     ]
-    executor = Pipeline(actions)
-    result = executor.schedule(None).get()
+    source = None
+    executor = Pipeline(source, actions)
+    result = executor.schedule().get()
     assert result.results['increment_once_more'] == 3
 
 
@@ -88,8 +95,9 @@ def test_named_actions_in_pipeline():
     }
     actions = [TaskAction(dct['task'], name=dct['name'])]
 
-    executor = Pipeline(actions)
-    ret = executor.schedule('42').get()
+    source ='42' 
+    executor = Pipeline(source, actions)
+    ret = executor.schedule().get()
 
     assert 'mytask' in ret.results.keys()
     assert bool(ret.results['mytask'])

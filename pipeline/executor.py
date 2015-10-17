@@ -11,12 +11,13 @@ __all__ = ['Pipeline']
 class Pipeline(object):
     """Abstraction of an execution pipeline.
     """
-    def __init__(self, actions, composition='chain', context_klass=BuildContext):
+    def __init__(self, source, actions, composition='chain', context_klass=BuildContext):
+        self.source = source
         self.actions = actions
         self.composition = composition
-        self.context_klass = context_klass
+        self.context = context_klass()
 
-    def schedule(self, source, **build_kwargs):
+    def schedule(self):
         """Schedule actions using celery.
         """
         tasks = []
@@ -34,10 +35,10 @@ class Pipeline(object):
                 # will recieve a copy of this context from the previously executed action).
                 # In the case of parallel execution (group), each action needs
                 # a build context of it's own, that it can pass to it's child tasks/callbacks.
-                build_context = self.context_klass(**build_kwargs)
-                partial = action.prepare(source, build_context)
+                build_context = self.context
+                partial = action.prepare(self.source, build_context)
             else:
-                partial = action.prepare(source)
+                partial = action.prepare(self.source)
 
             tasks.append(partial)
 

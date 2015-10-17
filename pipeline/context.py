@@ -17,6 +17,7 @@ import six
 from jinja2 import Environment
 
 from pipeline.criteria import safe_eval
+from pipeline.utils import jinja_filters_from_module
 
 __all__ = ['BuildContext']
 
@@ -32,16 +33,23 @@ class BuildContext(object):
     """
 
     def __init__(self, **kwargs):
-        self.kwargs = kwargs
-
-        #TODO this should be some magic in getattr
-        for k, v in self.kwargs.items():
-            setattr(self, k, v)
+        self._dict = kwargs
+        #
+        # #TODO this should be some magic in getattr
+        # for k, v in self._dict.items():
+        #     setattr(self, k, v)
 
         #TODO: read these in getattr
         self.results = {}
 
-    def update(self, action_or_name, result):
+        self.env = Environment()
+
+    def update(self, kwargs):
+        """Giving this some dict-like attrs.
+        """
+        self._dict.update(kwargs)
+
+    def update_state(self, action_or_name, result):
         """Update the build context state with the result
         of a task.
         FIXME action_or_name
@@ -59,13 +67,23 @@ class BuildContext(object):
 
         return self
 
+    def register_filters(self, module):
+        """Register jinja2 template filters given a module.
+        """
+        for k, v in jinja_filters_from_module(module).items():
+            self.env.filters[k] = v
+
+    def register_filter(self, name, func):
+        """Register a jinja2 filter.
+        """
+        self.env.filters[name] = func
+
     def render(self, template, **kwargs):
         """Render a template using build context data.
         """
-        env = Environment()
-        env.globals.update(self.eval_context)
-        env.globals.update(kwargs)
-        return env.from_string(template).render()
+        self.env.globals.update(self.eval_context)
+        self.env.globals.update(kwargs)
+        return self.env.from_string(template).render()
 
     def render_params(self, source, *args, **kwargs):
         """Render all the things!
@@ -106,6 +124,6 @@ class BuildContext(object):
 
         for k, v in self.results.items():
             context.update({k: v})
-        for k, v in self.kwargs.items():
+        for k, v in self._dict.items():
             context.update({k: v})
         return context

@@ -29,10 +29,10 @@ def test_source_acquired():
 
         ),
     ]
-    executor = Pipeline(actions)
     source = DummySource()
+    executor = Pipeline(source, actions)
 
-    result = executor.schedule(source).get()
+    result = executor.schedule().get()
     assert result.results['installer'].returncode == 0
 
 def test_shell_command_exit():
@@ -48,8 +48,8 @@ def test_shell_command_exit():
 
         ),
     ]
-    executor = Pipeline(actions)
     source = DummySource()
+    executor = Pipeline(source, actions)
 
-    result = executor.schedule(source).get()
+    result = executor.schedule().get()
     assert result.results['exiter'].returncode == 1
